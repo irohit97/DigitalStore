@@ -6,6 +6,7 @@ const Product = require('../models/Product');
 router.get('/', async (req, res) => {
   try {
     const { category } = req.query;
+    category = 'graphic'
     const filter = category ? { category } : {};
     const products = await Product.find(filter);
     res.json(products);

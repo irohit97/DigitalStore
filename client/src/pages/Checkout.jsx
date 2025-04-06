@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
-import { loadScript } from '../utils/razorpay';
 
 const CheckoutPage = () => {
   const cartItems = useSelector(state => state.cart.items);

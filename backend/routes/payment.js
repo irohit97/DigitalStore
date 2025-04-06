@@ -3,8 +3,8 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const Order = require('../models/Order');
-const razorpay = require('../../client/src/utils/razorpay');
-const { sendDownloadLinkEmail } = require('../../client/src/utils/email');
+const razorpay = require('../utils/razorpay');
+const { sendDownloadLinkEmail } = require('../utils/email');
 
 // Create Razorpay order
 router.post('/create-order', async (req, res) => {

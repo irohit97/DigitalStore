@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { removeFromCart, updateCartItemQuantity } from '../redux/slices/wishlistSlice';
+import { removeFromCart, updateCartItemQuantity } from '../redux/slices/cartSlice';
 
 const CartPage = () => {
   const cartItems = useSelector(state => state.cart.items);
