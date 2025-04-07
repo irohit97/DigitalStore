@@ -5,19 +5,26 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: [true, 'Please add a name'],
+    trim: true,
+    maxlength: [50, 'Name cannot be more than 50 characters']
   },
   email: {
     type: String,
-    required: true,
-    unique: true
+    required: [true, 'Please add an email'],
+    unique: true,
+    trim: true,
+    lowercase: true,
+    match: [
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      'Please add a valid email'
+    ]
   },
   password: {
     type: String,
-    required: true
-  },
-  phone: {
-    type: String
+    required: [true, 'Please add a password'],
+    minlength: [6, 'Password must be at least 6 characters'],
+    select: false
   },
   createdAt: {
     type: Date,
@@ -25,7 +32,7 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Hash password before saving
+// Encrypt password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
@@ -37,5 +44,10 @@ userSchema.pre('save', async function(next) {
     next(err);
   }
 });
+
+// Method to compare entered password with hashed password
+userSchema.methods.matchPassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 module.exports = mongoose.model('User', userSchema);
