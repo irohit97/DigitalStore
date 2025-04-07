@@ -9,8 +9,9 @@ const Ebooks = () => {
   useEffect(() => {
     const fetchEbooks = async () => {
       try {
-        const response = await axios.get('/api/products?category=ebooks');
-        setEbooks(response.data);
+        const res = await axios.get('/api/products?category=ebook');
+        console.log("Fetched eBooks:", res.data); // ✅ Optional debug log
+        setEbooks(res.data);
       } catch (error) {
         console.error("Failed to fetch ebooks:", error);
       } finally {
@@ -113,3 +114,4 @@ const Ebooks = () => {
 };
 
 export default Ebooks;
+

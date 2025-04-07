@@ -9,8 +9,9 @@ const Software = () => {
   useEffect(() => {
     const fetchSoftwares = async () => {
       try {
-        const response = await axios.get('/api/products?category=software');
-        setSoftwares(response.data);
+        const res = await axios.get('/api/products?category=software');
+        console.log("Fetched software products:", res.data); // ✅ optional debug log
+        setSoftwares(res.data);
       } catch (error) {
         console.error("Failed to fetch software:", error);
       } finally {
