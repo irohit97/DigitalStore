@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginStart, loginSuccess, loginFailure } from '../redux/slices/authSlice';
 import axios from 'axios';
 
 const LoginPage = () => {
@@ -7,7 +9,8 @@ const LoginPage = () => {
     email: '',
     password: ''
   });
-  const [error, setError] = useState('');
+  const dispatch = useDispatch();
+  const { isLoading, error, token } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -19,17 +22,37 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    dispatch(loginStart());
+
     try {
-      const response = await axios.post('/api/auth/login', {
-        email: formData.email,
-        password: formData.password
-      });
-      localStorage.setItem('token', response.data.token);
-      navigate('/');
+      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
+      
+      // Ensure response has the expected structure
+      if (response.data && response.data.token && response.data.user) {
+        dispatch(loginSuccess({
+          token: response.data.token,
+          user: {
+            id: response.data.user.id,
+            name: response.data.user.name,
+            email: response.data.user.email
+          }
+        }));
+        navigate('/');
+      } else {
+        throw new Error('Invalid response structure from server');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      const errorMessage = err.response?.data?.message || err.message || 'Login failed';
+      dispatch(loginFailure(errorMessage));
     }
   };
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (token) {
+      navigate('/');
+    }
+  }, [token, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -39,32 +62,40 @@ const LoginPage = () => {
             Sign in to your account
           </h2>
         </div>
-        {error && <div className="text-red-500 text-center">{error}</div>}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+            {error}
+          </div>
+        )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">Email address</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email address
+              </label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleChange}
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
               <input
                 id="password"
                 name="password"
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
@@ -95,9 +126,10 @@ const LoginPage = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign in
+              {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { removeFromWishlist, addToCart } from '../redux/actions';
+import { removeFromWishlist, addToCart } from '../redux/slices/wishlistSlice'; // Updated import path
 
 const WishlistPage = () => {
   const wishlistItems = useSelector(state => state.wishlist.items);
@@ -22,7 +22,7 @@ const WishlistPage = () => {
         <p className="text-gray-600 mb-6">You haven't added any products to your wishlist yet.</p>
         <Link 
           to="/products" 
-          className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
         >
           Browse Products
         </Link>
@@ -44,20 +44,22 @@ const WishlistPage = () => {
                   className="w-20 h-20 object-contain"
                 />
                 <div>
-                  <h2 className="text-lg font-semibold">{item.title}</h2>
+                  <Link to={`/products/${item._id}`} className="text-lg font-semibold hover:text-blue-600">
+                    {item.title}
+                  </Link>
                   <p className="text-gray-600">₹{item.price}</p>
                 </div>
               </div>
               <div className="flex space-x-2">
                 <button 
                   onClick={() => handleMoveToCart(item)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                 >
                   Move to Cart
                 </button>
                 <button 
                   onClick={() => handleRemoveFromWishlist(item._id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                 >
                   Remove
                 </button>
