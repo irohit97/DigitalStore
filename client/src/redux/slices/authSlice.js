@@ -30,6 +30,7 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.token = null;
+      state.error = null;
     },
     clearError: (state) => {
       state.error = null;
@@ -38,6 +39,9 @@ const authSlice = createSlice({
       state.user = action.payload.user || null;
       state.token = action.payload.token || null;
       state.isLoading = false;
+    },
+    setLoading: (state, action) => {
+      state.isLoading = action.payload;
     }
   }
 });
@@ -48,19 +52,8 @@ export const {
   loginFailure,
   logout,
   clearError,
-  setUser
+  setUser,
+  setLoading
 } = authSlice.actions;
-
-// Optional: load from localStorage if you still use it in App.jsx
-const loadUserFromStorage = () => (dispatch) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    dispatch(setUser({ token }));
-  } else {
-    dispatch(setUser({ token: null, user: null }));
-  }
-};
-
-export { loadUserFromStorage };
 
 export default authSlice.reducer;

@@ -1,7 +1,7 @@
 // client/src/redux/store.js
 
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { persistStore, persistReducer } from 'redux-persist';
+import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
 import authReducer from './slices/authSlice';
@@ -11,7 +11,8 @@ import wishlistReducer from './slices/wishlistSlice';
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth'] // Only persist auth slice
+  whitelist: ['auth'], // Only persist auth slice
+  blacklist: ['auth.isLoading'] // Don't persist loading state
 };
 
 const rootReducer = combineReducers({
@@ -26,7 +27,9 @@ export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false // Prevent redux-persist errors
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER]
+      }
     })
 });
 
