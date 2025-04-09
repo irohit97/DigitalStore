@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { setUser, setLoading } from './redux/slices/authSlice';
+import { loadUserFromStorage, setUser } from './redux/slices/authSlice';
 import axios from 'axios';
 
 import Navbar from './components/Navbar';
@@ -35,30 +35,29 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   const dispatch = useDispatch();
-  const { token, user, isLoading } = useSelector((state) => state.auth);
+  const { isLoading } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    const verifyToken = async () => {
-      if (token && !user) {
+    dispatch(loadUserFromStorage());
+
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
         try {
-          dispatch(setLoading(true));
           const response = await axios.get('http://localhost:5000/api/auth/me', {
             headers: {
               Authorization: `Bearer ${token}`
             }
           });
-          dispatch(setUser({ user: response.data, token }));
+          dispatch(setUser(response.data));
         } catch (err) {
-          console.error('Token verification failed:', err);
-          dispatch(setUser({ user: null, token: null }));
-        } finally {
-          dispatch(setLoading(false));
+          localStorage.removeItem('token');
         }
       }
     };
 
-    verifyToken();
-  }, [dispatch, token, user]);
+    checkAuth();
+  }, [dispatch]);
 
   if (isLoading) {
     return (
