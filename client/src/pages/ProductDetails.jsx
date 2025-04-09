@@ -1,16 +1,49 @@
 import { useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart, addToWishlist } from '../redux/slices/wishlistSlice';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 
 const ProductDetails = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
-  // In a real app, you would fetch the product details based on the ID
-  // For now, we'll use a sample product or get it from Redux store
-  const product = useSelector(state => 
-    state.products.items.find(item => item._id === id) || 
-    state.wishlist.items.find(item => item._id === id)
-  );
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`http://localhost:5000/api/products/${id}`);
+        setProduct(response.data);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to fetch product');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p>Loading product details...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">Error loading product</h1>
+        <p className="text-red-500 mb-4">{error}</p>
+        <Link to="/" className="text-blue-600 hover:underline">Back to Home</Link>
+      </div>
+    );
+  }
 
   if (!product) {
     return (

@@ -1,3 +1,5 @@
+// client/src/redux/slices/authSlice.js
+
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
@@ -20,9 +22,6 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.error = null;
-      
-      // Store token in localStorage
-      localStorage.setItem('token', action.payload.token);
     },
     loginFailure: (state, action) => {
       state.isLoading = false;
@@ -31,7 +30,6 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.token = null;
-      localStorage.removeItem('token');
     },
     clearError: (state) => {
       state.error = null;
@@ -44,7 +42,16 @@ const authSlice = createSlice({
   }
 });
 
-// ✅ NEW: This function loads token from localStorage and dispatches setUser
+export const {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  logout,
+  clearError,
+  setUser
+} = authSlice.actions;
+
+// Optional: load from localStorage if you still use it in App.jsx
 const loadUserFromStorage = () => (dispatch) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -54,16 +61,6 @@ const loadUserFromStorage = () => (dispatch) => {
   }
 };
 
-export const { 
-  loginStart, 
-  loginSuccess, 
-  loginFailure, 
-  logout, 
-  clearError,
-  setUser
-} = authSlice.actions;
-
-// ✅ Export this for use in App.jsx
 export { loadUserFromStorage };
 
 export default authSlice.reducer;

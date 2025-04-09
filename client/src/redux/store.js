@@ -1,27 +1,32 @@
-import { configureStore } from '@reduxjs/toolkit';
+// client/src/redux/store.js
+
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
+
 import authReducer from './slices/authSlice';
 import cartReducer from './slices/cartSlice';
 import wishlistReducer from './slices/wishlistSlice';
 
-const authPersistConfig = {
-  key: 'auth',
+const persistConfig = {
+  key: 'root',
   storage,
-  whitelist: ['user', 'token']
+  whitelist: ['auth'] // Only persist auth slice
 };
 
+const rootReducer = combineReducers({
+  auth: authReducer,
+  cart: cartReducer,
+  wishlist: wishlistReducer
+});
+
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
 export const store = configureStore({
-  reducer: {
-    auth: persistReducer(authPersistConfig, authReducer),
-    cart: cartReducer,
-    wishlist: wishlistReducer
-  },
+  reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: ['persist/PERSIST']
-      }
+      serializableCheck: false // Prevent redux-persist errors
     })
 });
 
