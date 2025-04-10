@@ -1,209 +1,259 @@
-import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useMemo } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
+import { formatPrice } from '../utils/formatPrice';
+import { toast } from 'react-toastify';
 import axios from 'axios';
+import { clearCart } from '../redux/slices/cartSlice';
 
 const CheckoutPage = () => {
-  const cartItems = useSelector(state => state.cart.items);
-  const [userDetails, setUserDetails] = useState({
-    name: '',
-    email: '',
-    phone: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { items: cartItems, totalAmount } = useSelector(state => state.cart);
+  const { user, token } = useSelector(state => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  const [email, setEmail] = useState(user?.email || '');
+  const [paymentMethod, setPaymentMethod] = useState('Razorpay');
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Calculate the subtotal correctly without tax
+  const subtotal = useMemo(() => {
+    // Calculate subtotal by summing all products
+    const total = cartItems.reduce((sum, item) => {
+      const price = item?.product?.price || 0;
+      const quantity = item?.quantity || 0;
+      return sum + (price * quantity);
+    }, 0);
+    
+    return total.toFixed(2) * 1;
+  }, [cartItems]);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-  useEffect(() => {
-    // Load Razorpay script
-    loadScript('https://checkout.razorpay.com/v1/checkout.js')
-      .catch(err => {
-        console.error('Failed to load Razorpay script', err);
-        setError('Failed to load payment gateway');
-      });
-
-    // Fetch user details if logged in
-    const token = localStorage.getItem('token');
-    if (token) {
-      axios.get('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(response => {
-        setUserDetails({
-          name: response.data.name,
-          email: response.data.email,
-          phone: response.data.phone || ''
-        });
-      })
-      .catch(err => {
-        console.error('Failed to fetch user details', err);
-      });
-    }
-  }, []);
-
-  const handleChange = (e) => {
-    setUserDetails({
-      ...userDetails,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e) => {
+  const handlePlaceOrder = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    
+    // Basic validation
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
+    if (cartItems.length === 0) {
+      toast.error('Your cart is empty');
+      return;
+    }
 
+    setIsProcessing(true);
+    
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/api/payment/create-order', {
-        amount: subtotal * 100, // Razorpay expects amount in paise
-        currency: 'INR',
-        products: cartItems.map(item => ({
-          productId: item._id,
-          quantity: item.quantity
-        })),
-        customerEmail: userDetails.email
+      // Send order to backend
+      const response = await axios.post('/api/orders', {
+        items: cartItems,
+        totalAmount: subtotal,
+        paymentMethod
       }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-
-      const options = {
-        key: process.env.RAZORPAY_KEY_ID,
-        amount: response.data.amount,
-        currency: response.data.currency,
-        name: 'DigitalStore',
-        description: 'Purchase of digital products',
-        order_id: response.data.id,
-        handler: async function(response) {
-          try {
-            await axios.post('/api/payment/verify', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              orderId: response.data.orderId
-            });
-            // Redirect to success page or show success message
-            window.location.href = '/order-success';
-          } catch (err) {
-            setError('Payment verification failed');
-          }
-        },
-        prefill: {
-          name: userDetails.name,
-          email: userDetails.email,
-          contact: userDetails.phone
-        },
-        theme: {
-          color: '#3399cc'
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Payment processing failed');
+      });
+      
+      if (response.data.success) {
+        // Clear the cart after successful order
+        dispatch(clearCart());
+        
+        toast.success('Order placed successfully! You will receive download links in your email shortly.');
+        
+        // Navigate to thank you page
+        navigate('/thank-you');
+      } else {
+        throw new Error(response.data.message || 'Failed to create order');
+      }
+    } catch (error) {
+      console.error('Order error:', error);
+      toast.error(error.response?.data?.message || error.message || 'Failed to place order');
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center">
+        <div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
+          <h1 className="text-3xl font-bold mb-6 text-gray-800">Checkout</h1>
+          <div className="mb-8">
+            <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+          </div>
+          <p className="text-xl mb-8 text-gray-600">Your cart is empty</p>
+          <Link to="/products" className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors">
+            Browse Products
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="lg:w-2/3">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">User Details</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={userDetails.name}
-                    onChange={handleChange}
-                  />
+    <div className="bg-gray-50 min-h-screen py-12">
+      <div className="container mx-auto px-4">
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-3xl font-bold mb-2 text-center text-gray-800">Complete Your Purchase</h1>
+          <p className="text-center text-gray-600 mb-10">Secure checkout for your digital products</p>
+          
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="p-6 border-b border-gray-200 bg-blue-50">
+              <h2 className="text-xl font-semibold text-blue-800">Order Summary</h2>
+            </div>
+            
+            <div className="grid md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+              {/* Product Details - 3/5 width on md screens */}
+              <div className="md:col-span-3 p-6">
+                <h3 className="font-medium text-gray-700 mb-4">Digital Products</h3>
+                <div className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2">
+                  {cartItems.map(item => {
+                    const product = item?.product || {};
+                    return (
+                      <div key={product._id || `item-${Math.random()}`} className="flex space-x-4 pb-4 border-b border-gray-100">
+                        <img 
+                          src={product.image || '/placeholder-image.jpg'} 
+                          alt={product.title || 'Product'} 
+                          className="w-16 h-16 object-cover rounded bg-gray-100 flex-shrink-0" 
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">{product.title || 'Product'}</h4>
+                          <p className="text-sm text-gray-500">Qty: {item?.quantity || 1}</p>
+                          <div className="mt-1 text-sm font-medium text-gray-900">
+                            {formatPrice((product.price || 0) * (item?.quantity || 1))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+                
+                <div className="mt-6">
+                  <h3 className="font-medium text-gray-700 mb-4">Delivery Information</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Your purchased digital products will be delivered to your email address. 
+                    You will also be able to download them directly after purchase.
+                  </p>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address
+                      <span className="ml-1 text-xs text-blue-600">(verified account email)</span>
+                    </label>
+                    <div className="relative">
                   <input
                     type="email"
                     id="email"
-                    name="email"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={userDetails.email}
-                    onChange={handleChange}
-                  />
+                        value={email}
+                        readOnly 
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md focus:outline-none text-gray-700"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                      </div>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Digital products will be delivered to this email address</p>
                 </div>
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={userDetails.phone}
-                    onChange={handleChange}
-                  />
                 </div>
               </div>
-            </form>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
-            <div className="space-y-4">
-              <div className="flex items-center">
+              
+              {/* Payment Section - 2/5 width on md screens */}
+              <div className="md:col-span-2 p-6 bg-gray-50">
+                <form onSubmit={handlePlaceOrder}>
+                  <h3 className="font-medium text-gray-700 mb-4">Payment Method</h3>
+                  
+                  <div className="space-y-3 mb-6">
+                    <div className="relative border rounded-md px-4 py-3 flex items-center border-blue-500 bg-blue-50">
                 <input
-                  type="radio"
                   id="razorpay"
                   name="paymentMethod"
-                  value="razorpay"
+                        type="radio" 
+                        value="Razorpay" 
+                        checked={true}
+                        readOnly
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  defaultChecked
-                />
-                <label htmlFor="razorpay" className="ml-2 block text-sm text-gray-900">
-                  Razorpay (Credit/Debit Card, UPI, Net Banking)
+                      />
+                      <label htmlFor="razorpay" className="ml-3 flex items-center cursor-pointer w-full">
+                        <span className="text-sm font-medium text-gray-700">Razorpay</span>
+                        <div className="ml-auto">
+                          <img 
+                            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRQQm61y_1zYU15YuP51hPr52IgbM35xwCc3YOyl0L4Jw5xkdHeWQ1If78_nF1l6_pUIDI&usqp=CAU" 
+                            alt="Razorpay" 
+                            className="h-8 object-contain"
+                          />
+                        </div>
                 </label>
               </div>
             </div>
+                  
+                  <div className="border-t border-gray-200 pt-6 mt-6">
+                    <div className="flex justify-between mb-4">
+                      <span className="text-sm text-gray-600">Digital Products</span>
+                      <span className="text-sm font-medium">{formatPrice(subtotal)}</span>
           </div>
-        </div>
-        <div className="lg:w-1/3">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-            <div className="space-y-4">
-              <div className="divide-y divide-gray-200">
-                {cartItems.map(item => (
-                  <div key={item._id} className="py-2 flex justify-between">
-                    <div>
-                      <p className="font-medium">{item.title}</p>
-                      <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                    
+                    <div className="flex justify-between font-medium text-lg mt-6 pt-4 border-t border-gray-200">
+                      <span>Total</span>
+                      <span className="text-blue-600">{formatPrice(subtotal)}</span>
                     </div>
-                    <p>₹{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
-                ))}
+                  
+                  <button
+                    type="submit"
+                    disabled={isProcessing}
+                    className={`mt-8 w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isProcessing ? 'opacity-75 cursor-not-allowed' : ''}`}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processing...
+                      </>
+                    ) : (
+                      'Complete Purchase'
+                    )}
+                  </button>
+                  
+                  <div className="mt-4 flex justify-center">
+                    <Link to="/cart" className="text-sm text-blue-600 hover:text-blue-800 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                      </svg>
+                      Return to Cart
+                    </Link>
+                  </div>
+                  
+                  <div className="mt-8 flex justify-center space-x-4">
+                    <svg className="h-8 w-auto text-gray-400" fill="currentColor" viewBox="0 0 36 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M33 0H3C1.3 0 0 1.3 0 3v18c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2V3c0-1.1.9-2 2-2h30c1.1 0 2 .9 2 2z" fill="#fff"></path>
+                    </svg>
+                    <svg className="h-8 w-auto text-gray-400" fill="currentColor" viewBox="0 0 36 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M33 0H3C1.3 0 0 1.3 0 3v18c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2V3c0-1.1.9-2 2-2h30c1.1 0 2 .9 2 2z" fill="#fff"></path>
+                    </svg>
+                    <svg className="h-8 w-auto text-gray-400" fill="currentColor" viewBox="0 0 36 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M33 0H3C1.3 0 0 1.3 0 3v18c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2V3c0-1.1.9-2 2-2h30c1.1 0 2 .9 2 2z" fill="#fff"></path>
+                    </svg>
+                  </div>
+                </form>
               </div>
-              <div className="border-t border-gray-200 pt-4">
-                <div className="flex justify-between font-semibold text-lg">
-                  <span>Total</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
+            
+            {/* Secure Transaction Notice */}
+            <div className="p-4 text-center">
+              <div className="flex justify-center items-center text-sm text-gray-500">
+                <svg className="w-4 h-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+                Secure transaction. All data is encrypted and transmitted securely.
               </div>
-              {error && <div className="text-red-500 text-center">{error}</div>}
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={loading}
-                className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400"
-              >
-                {loading ? 'Processing...' : 'Proceed to Payment'}
-              </button>
             </div>
           </div>
         </div>

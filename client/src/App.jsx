@@ -9,16 +9,19 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
+import Checkout from './pages/checkout';
 import Orders from './pages/Orders';
+import OrderHistory from './pages/OrderHistory';
 import Wishlist from './pages/Wishlist';
 import ProductDetails from './pages/ProductDetails';
 import Ebooks from './pages/Ebooks';
 import Software from './pages/Software';
 import Graphics from './pages/Graphics';
+import ThankYou from './pages/ThankYou';
 import LoadingSpinner from './components/LoadingSpinner';
 import { getCartAsync } from './redux/slices/cartSlice';
 import { fetchWishlist } from './redux/slices/wishlistSlice';
+import { fetchOrdersAsync } from './redux/slices/orderSlice';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -70,9 +73,10 @@ function App() {
           // Update localStorage with the latest user data
           localStorage.setItem('user', JSON.stringify(response.data.user || response.data));
           
-          // Fetch cart and wishlist when user is authenticated
+          // Fetch cart, wishlist, and orders when user is authenticated
           dispatch(getCartAsync());
           dispatch(fetchWishlist());
+          dispatch(fetchOrdersAsync());
         } catch (err) {
           console.error('Authentication error:', err);
           
@@ -83,9 +87,10 @@ function App() {
               user: storedUser
             }));
             
-            // Still try to fetch cart and wishlist
+            // Still try to fetch cart, wishlist, and orders
             dispatch(getCartAsync());
             dispatch(fetchWishlist());
+            dispatch(fetchOrdersAsync());
           } else {
             // Clear token only if we don't have stored user data
             localStorage.removeItem('token');
@@ -161,10 +166,26 @@ function App() {
           } 
         />
         <Route 
+          path="/order-history" 
+          element={
+            <ProtectedRoute>
+              <OrderHistory />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
           path="/wishlist" 
           element={
             <ProtectedRoute>
               <Wishlist />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/thank-you" 
+          element={
+            <ProtectedRoute>
+              <ThankYou />
             </ProtectedRoute>
           } 
         />

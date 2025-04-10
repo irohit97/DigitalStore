@@ -99,6 +99,10 @@ const cartSlice = createSlice({
     resetUpdateQuantityStatus: (state) => {
       state.isUpdatingQuantity = false;
       state.updateQuantityError = null;
+    },
+    clearCart: (state) => {
+      state.items = [];
+      state.total = 0;
     }
   },
   extraReducers: (builder) => {
@@ -172,7 +176,8 @@ const cartSlice = createSlice({
 export const { 
   resetDeleteStatus, 
   resetAddStatus,
-  resetUpdateQuantityStatus 
+  resetUpdateQuantityStatus,
+  clearCart
 } = cartSlice.actions;
 
 export default cartSlice.reducer;

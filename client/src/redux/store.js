@@ -7,6 +7,7 @@ import storage from 'redux-persist/lib/storage';
 import authReducer from './slices/authSlice';
 import cartReducer from './slices/cartSlice';
 import wishlistReducer from './slices/wishlistSlice';
+import orderReducer from './slices/orderSlice';
 
 // Custom transform to handle cart serialization
 const cartTransform = {
@@ -62,7 +63,8 @@ const persistConfig = {
 const rootReducer = combineReducers({
   auth: authReducer,
   cart: cartReducer,
-  wishlist: wishlistReducer
+  wishlist: wishlistReducer,
+  orders: orderReducer
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

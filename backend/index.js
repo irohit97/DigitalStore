@@ -7,7 +7,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');  // Changed from './middleware/auth'
 const productRoutes = require('./routes/products');  // Changed from './routes/product'
 const paymentRoutes = require('./routes/payment');
-// const orderRoutes = require('./routes/orders');
+const orderRoutes = require('./routes/orders');
 const cartRoutes = require('./routes/cart');
 const wishlistRoutes = require('./routes/wishlist');
 const { verifyToken } = require('./middleware/auth');
@@ -27,7 +27,7 @@ mongoose.connect(process.env.MONGO_URI, )
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/payment', paymentRoutes);
-// app.use('/api/orders', verifyToken, orderRoutes);
+app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 
