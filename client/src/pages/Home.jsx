@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '../redux/slices/cartSlice';
-import { addToWishlist } from '../redux/slices/wishlistSlice';
+import { addToCartAsync } from '../redux/slices/cartSlice';
+import { addToWishlistAsync } from '../redux/slices/wishlistSlice';
 import axios from 'axios';
 
 const Home = () => {
@@ -30,11 +30,11 @@ const Home = () => {
   }, []);
 
   const handleAddToCart = (product) => {
-    dispatch(addToCart({ ...product, quantity: 1 }));
+    dispatch(addToCartAsync({ productId: product._id, quantity: 1 }));
   };
 
   const handleAddToWishlist = (product) => {
-    dispatch(addToWishlist(product));
+    dispatch(addToWishlistAsync(product));
   };
 
   if (loading) return <div className="text-center py-8">Loading products...</div>;

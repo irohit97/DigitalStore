@@ -16,8 +16,11 @@ const Navbar = () => {
   const profileTimeoutRef = useRef(null);
 
   const handleLogout = () => {
-    dispatch(logout());
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    dispatch(logout());
+    
     setIsProfileDropdownOpen(false);
   };
 

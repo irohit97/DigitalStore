@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { protect } = require('../middleware/auth');
 
 // Input validation middleware
 const validateSignup = (req, res, next) => {
@@ -114,6 +115,32 @@ router.post('/login', validateLogin, async (req, res) => {
     });
   } catch (err) {
     console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get user profile
+router.get('/me', protect, async (req, res) => {
+  try {
+    // User is already attached to req by the protect middleware
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+        cart: user.cart || [],
+        wishlist: user.wishlist || []
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching user profile:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

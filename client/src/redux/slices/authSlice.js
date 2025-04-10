@@ -36,12 +36,25 @@ const authSlice = createSlice({
       state.error = null;
     },
     setUser: (state, action) => {
-      state.user = action.payload.user || null;
-      state.token = action.payload.token || null;
+      state.user = action.payload.user || action.payload;
+      state.token = action.payload.token || localStorage.getItem('token');
       state.isLoading = false;
     },
     setLoading: (state, action) => {
       state.isLoading = action.payload;
+    },
+    loadUserFromStorage: (state) => {
+      state.isLoading = true;
+      state.token = localStorage.getItem('token');
+      
+      try {
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          state.user = JSON.parse(savedUser);
+        }
+      } catch (err) {
+        console.error('Error parsing user from localStorage', err);
+      }
     }
   }
 });
@@ -53,7 +66,8 @@ export const {
   logout,
   clearError,
   setUser,
-  setLoading
+  setLoading,
+  loadUserFromStorage
 } = authSlice.actions;
 
 export default authSlice.reducer;

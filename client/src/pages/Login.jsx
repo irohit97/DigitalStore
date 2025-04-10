@@ -25,18 +25,27 @@ const LoginPage = () => {
     dispatch(loginStart());
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
+      const response = await axios.post('/api/auth/login', formData);
       
       // Ensure response has the expected structure
       if (response.data && response.data.token && response.data.user) {
+        // Save token to localStorage
+        localStorage.setItem('token', response.data.token);
+        
+        // Save user to localStorage (but exclude sensitive info)
+        const userToStore = {
+          id: response.data.user.id,
+          name: response.data.user.name,
+          email: response.data.user.email
+        };
+        localStorage.setItem('user', JSON.stringify(userToStore));
+        
+        // Update Redux state
         dispatch(loginSuccess({
           token: response.data.token,
-          user: {
-            id: response.data.user.id,
-            name: response.data.user.name,
-            email: response.data.user.email
-          }
+          user: userToStore
         }));
+        
         navigate('/');
       } else {
         throw new Error('Invalid response structure from server');

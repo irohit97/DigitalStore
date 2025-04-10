@@ -8,11 +8,55 @@ import authReducer from './slices/authSlice';
 import cartReducer from './slices/cartSlice';
 import wishlistReducer from './slices/wishlistSlice';
 
+// Custom transform to handle cart serialization
+const cartTransform = {
+  in: (state, key) => {
+    if (key === 'cart') {
+      // Ensure we don't have any redundant properties in cart items
+      if (state && state.items) {
+        // Map to normalize cart item structure
+        const normalizedItems = state.items.map(item => ({
+          _id: item._id,
+          title: item.title || 'Unknown Product',
+          price: item.price || 0,
+          image: item.image || '',
+          category: item.category || 'Unknown',
+          quantity: item.quantity || 1
+        }));
+        
+        // Remove duplicates by _id (keeping only the last occurrence)
+        const uniqueItems = [];
+        const seenIds = new Set();
+        
+        // Process items in reverse to keep the most recent version
+        for (let i = normalizedItems.length - 1; i >= 0; i--) {
+          const item = normalizedItems[i];
+          if (!seenIds.has(item._id)) {
+            uniqueItems.unshift(item); // Add to front to maintain original order
+            seenIds.add(item._id);
+          }
+        }
+        
+        // Return a new state object instead of modifying the existing one
+        return {
+          ...state,
+          items: uniqueItems
+        };
+      }
+    }
+    return state;
+  },
+  out: (state, key) => {
+    return state;
+  }
+};
+
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth'], // Only persist auth slice
-  blacklist: ['auth.isLoading'] // Don't persist loading state
+  whitelist: ['auth', 'cart', 'wishlist'], // Persist auth, cart, and wishlist slices
+  blacklist: ['auth.isLoading'], // Don't persist loading state
+  transforms: [cartTransform]
 };
 
 const rootReducer = combineReducers({

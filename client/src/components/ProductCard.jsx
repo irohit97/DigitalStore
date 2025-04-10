@@ -1,18 +1,65 @@
-import { Link } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { addToWishlist } from '../redux/slices/wishlistSlice';
+import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { addToWishlistAsync } from '../redux/slices/wishlistSlice';
+import { addToCartAsync } from '../redux/slices/cartSlice';
+import { useState } from 'react';
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [message, setMessage] = useState('');
+  const { token } = useSelector(state => state.auth);
+  const isLoggedIn = !!token;
 
   const handleAddToWishlist = (e) => {
     e.preventDefault(); // Prevent link navigation
     e.stopPropagation(); // Stop event bubbling
-    dispatch(addToWishlist(product));
+    dispatch(addToWishlistAsync(product));
+  };
+  
+  const handleAddToCart = (e) => {
+    e.preventDefault(); // Prevent link navigation
+    e.stopPropagation(); // Stop event bubbling
+    
+    if (!isLoggedIn) {
+      setMessage('Please log in to add items to cart');
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+      return;
+    }
+    
+    // Make sure we have all required fields
+    const cartProduct = {
+      _id: product._id,
+      title: product.title || 'Unknown Product',
+      price: product.price || 0, 
+      image: product.image || '',
+      category: product.category || 'Unknown',
+      quantity: 1
+    };
+    
+    dispatch(addToCartAsync(cartProduct))
+      .unwrap()
+      .then(() => {
+        setMessage('Added to cart!');
+        setTimeout(() => setMessage(''), 1500);
+      })
+      .catch(error => {
+        setMessage(error || 'Failed to add to cart');
+        setTimeout(() => setMessage(''), 1500);
+      });
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative">
+      {message && (
+        <div className={`absolute top-2 right-2 px-2 py-1 text-sm rounded z-10 ${
+          message.includes('Failed') ? 'bg-red-500' : 'bg-green-500'
+        } text-white`}>
+          {message}
+        </div>
+      )}
       <Link to={`/products/${product._id}`} className="block">
         <img 
           src={product.image} 
@@ -36,11 +83,7 @@ const ProductCard = ({ product }) => {
         </button>
         <button 
           className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Add to cart logic here
-          }}
+          onClick={handleAddToCart}
         >
           Add to Cart
         </button>

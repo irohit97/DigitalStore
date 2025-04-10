@@ -4,7 +4,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '../redux/slices/cartSlice';
+import { addToCartAsync } from '../redux/slices/cartSlice';
 import axios from 'axios';
 
 const Graphics = () => {
@@ -35,7 +35,7 @@ const Graphics = () => {
       // Redirect to login or show login modal
       return;
     }
-    dispatch(addToCart({ productId: item._id, quantity: 1 }));
+    dispatch(addToCartAsync({ productId: item._id, quantity: 1 }));
   };
 
   if (loading) {

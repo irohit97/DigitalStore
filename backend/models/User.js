@@ -2,6 +2,25 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+// Define cart item schema
+const cartItemSchema = new mongoose.Schema({
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1,
+    default: 1
+  },
+  title: String,
+  price: Number,
+  image: String,
+  category: String
+}, { _id: false });
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -25,6 +44,10 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Please add a password'],
     minlength: [6, 'Password must be at least 6 characters'],
     select: false
+  },
+  cart: {
+    type: [cartItemSchema],
+    default: []
   },
   createdAt: {
     type: Date,
