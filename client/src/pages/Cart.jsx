@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import { 
   getCartAsync, 
   deleteFromCartAsync, 
@@ -13,6 +12,7 @@ import { formatPrice } from '../utils/formatPrice';
 import { AiOutlineDelete } from 'react-icons/ai';
 import { BiArrowBack } from 'react-icons/bi';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useNotification } from '../context/NotificationContext';
 
 const Cart = () => {
   const dispatch = useDispatch();
@@ -28,6 +28,7 @@ const Cart = () => {
   } = useSelector(state => state.cart);
   const [itemBeingDeleted, setItemBeingDeleted] = useState(null);
   const [itemBeingUpdated, setItemBeingUpdated] = useState(null);
+  const { addNotification } = useNotification();
 
   // Fetch cart on component mount
   useEffect(() => {
@@ -37,25 +38,25 @@ const Cart = () => {
   // Handle delete status notifications
   useEffect(() => {
     if (deleteSuccess) {
-      toast.success('Item removed from cart successfully');
+      addNotification('Item removed from cart successfully', 'success');
       setItemBeingDeleted(null);
       dispatch(resetDeleteStatus());
     }
     if (deleteError) {
-      toast.error(deleteError || 'Failed to remove item from cart');
+      addNotification(deleteError || 'Failed to remove item from cart', 'error');
       setItemBeingDeleted(null);
       dispatch(resetDeleteStatus());
     }
-  }, [deleteSuccess, deleteError, dispatch]);
+  }, [deleteSuccess, deleteError, dispatch, addNotification]);
 
-  // Handle quantity update status notifications
+  // Handle quantity update notifications
   useEffect(() => {
     if (updateQuantityError) {
-      toast.error(updateQuantityError || 'Failed to update quantity');
+      addNotification(updateQuantityError || 'Failed to update quantity', 'error');
       setItemBeingUpdated(null);
       dispatch(resetUpdateQuantityStatus());
     }
-  }, [updateQuantityError, dispatch]);
+  }, [updateQuantityError, dispatch, addNotification]);
 
   const handleRemoveFromCart = (productId) => {
     if (isDeleting) return;

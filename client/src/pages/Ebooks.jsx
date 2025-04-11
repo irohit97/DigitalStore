@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { addToCartAsync } from '../redux/slices/cartSlice';
+import { useNotification } from '../context/NotificationContext';
 import axios from 'axios';
 
 const Ebooks = () => {
   const [ebooks, setEbooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+  const { addNotification } = useNotification();
 
   useEffect(() => {
     const fetchEbooks = async () => {
@@ -14,16 +20,28 @@ const Ebooks = () => {
         setEbooks(res.data);
       } catch (error) {
         console.error("Failed to fetch ebooks:", error);
+        addNotification('Failed to load ebooks', 'error');
       } finally {
         setLoading(false);
       }
     };
 
     fetchEbooks();
-  }, []);
+  }, [addNotification]);
 
-  const addToCart = (book) => {
-    console.log("Added to cart:", book.title);
+  const handleAddToCart = (book) => {
+    if (!user) {
+      addNotification('Please login to add items to cart', 'warning');
+      return;
+    }
+    dispatch(addToCartAsync({ productId: book._id, quantity: 1 }))
+      .unwrap()
+      .then(() => {
+        addNotification(`${book.title} added to cart`, 'success');
+      })
+      .catch((error) => {
+        addNotification(error || 'Failed to add to cart', 'error');
+      });
   };
 
   return (
@@ -77,16 +95,16 @@ const Ebooks = () => {
                 <p className="text-gray-600 mb-2">by {book.artist}</p>
                 <p className="text-sm text-gray-700 mb-4 line-clamp-2">{book.description}</p>
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold">${book.price.toFixed(2)}</span>
+                  <span className="text-lg font-bold">₹{book.price.toFixed(2)}</span>
                   <div className="flex gap-2">
                     <button 
-                      onClick={() => addToCart(book)}
+                      onClick={() => handleAddToCart(book)}
                       className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
                     >
                       Add to Cart
                     </button>
                     <Link 
-                      to={`/ebooks/${book._id}`} 
+                      to={`/products/${book._id}`} 
                       className="px-3 py-1 border border-purple-600 text-purple-600 rounded hover:bg-purple-50 transition-colors"
                     >
                       Details

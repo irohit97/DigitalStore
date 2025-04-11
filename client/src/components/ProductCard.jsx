@@ -1,8 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToWishlistAsync } from '../redux/slices/wishlistSlice';
+import { addToWishlistAsync, removeFromWishlistAsync, fetchWishlist } from '../redux/slices/wishlistSlice';
 import { addToCartAsync } from '../redux/slices/cartSlice';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
@@ -10,11 +10,63 @@ const ProductCard = ({ product }) => {
   const [message, setMessage] = useState('');
   const { token } = useSelector(state => state.auth);
   const isLoggedIn = !!token;
+  const { items: wishlistItems } = useSelector(state => state.wishlist);
+  const [isInWishlist, setIsInWishlist] = useState(false);
 
-  const handleAddToWishlist = (e) => {
+  useEffect(() => {
+    // Check if product is in wishlist
+    const checkWishlistStatus = () => {
+      const isProductInWishlist = wishlistItems.some(item => item.product._id === product._id);
+      setIsInWishlist(isProductInWishlist);
+    };
+
+    checkWishlistStatus();
+  }, [wishlistItems, product._id]);
+
+  useEffect(() => {
+    // Fetch wishlist when component mounts
+    if (isLoggedIn) {
+      dispatch(fetchWishlist());
+    }
+  }, [dispatch, isLoggedIn]);
+
+  const handleWishlistToggle = (e) => {
     e.preventDefault(); // Prevent link navigation
     e.stopPropagation(); // Stop event bubbling
-    dispatch(addToWishlistAsync(product));
+    
+    if (!isLoggedIn) {
+      setMessage('Please log in to add items to wishlist');
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+      return;
+    }
+    
+    if (isInWishlist) {
+      // Remove from wishlist
+      dispatch(removeFromWishlistAsync(product._id))
+        .unwrap()
+        .then(() => {
+          setMessage('Removed from wishlist');
+          setTimeout(() => setMessage(''), 1500);
+        })
+        .catch(error => {
+          setMessage(error || 'Failed to remove from wishlist');
+          setTimeout(() => setMessage(''), 1500);
+        });
+    } else {
+      // Add to wishlist
+      dispatch(addToWishlistAsync({ _id: product._id }))
+        .unwrap()
+        .then(() => {
+          setMessage('Added to wishlist');
+          setTimeout(() => setMessage(''), 1500);
+        })
+        .catch(error => {
+          setMessage(error || 'Failed to add to wishlist');
+          setTimeout(() => setMessage(''), 1500);
+        });
+    }
   };
   
   const handleAddToCart = (e) => {
@@ -73,11 +125,11 @@ const ProductCard = ({ product }) => {
       </Link>
       <div className="p-4 pt-0 flex justify-between items-center">
         <button 
-          onClick={handleAddToWishlist}
-          className="text-gray-500 hover:text-red-500"
-          aria-label="Add to wishlist"
+          onClick={handleWishlistToggle}
+          className={`${isInWishlist ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
+          aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6" fill={isInWishlist ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </button>

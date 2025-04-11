@@ -1,9 +1,10 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { addToWishlistAsync } from '../redux/slices/wishlistSlice';
+import { addToWishlistAsync, removeFromWishlistAsync, fetchWishlist } from '../redux/slices/wishlistSlice';
 import { addToCartAsync } from '../redux/slices/cartSlice';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNotification } from '../context/NotificationContext';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -12,10 +13,31 @@ const ProductDetails = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [actionMessage, setActionMessage] = useState('');
+  const { addNotification } = useNotification();
   
   const { token } = useSelector(state => state.auth);
   const isLoggedIn = !!token;
+  const { items: wishlistItems } = useSelector(state => state.wishlist);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+
+  useEffect(() => {
+    // Fetch wishlist when component mounts
+    if (isLoggedIn) {
+      dispatch(fetchWishlist());
+    }
+  }, [dispatch, isLoggedIn]);
+
+  useEffect(() => {
+    // Check if product is in wishlist
+    const checkWishlistStatus = () => {
+      if (product && wishlistItems.length > 0) {
+        const isProductInWishlist = wishlistItems.some(item => item.product._id === product._id);
+        setIsInWishlist(isProductInWishlist);
+      }
+    };
+
+    checkWishlistStatus();
+  }, [wishlistItems, product]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -61,65 +83,54 @@ const ProductDetails = () => {
   }
 
   const handleAddToCart = () => {
-    if (!product || !product._id) {
-      console.error('Invalid product:', product);
-      setActionMessage('Error: Invalid product data');
+    if (!isLoggedIn) {
+      addNotification('Please log in to add items to cart', 'warning');
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
       return;
     }
 
-    console.log('Adding to cart:', product);
-    if (!isLoggedIn) {
-      setActionMessage('Please log in to add items to your cart');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-      return;
-    }
-    
-    // Ensure the product has all the required fields
-    const cartProduct = {
-      _id: product._id,
-      title: product.title || 'Unknown Product',
-      price: product.price || 0,
-      image: product.image || '',
-      category: product.category || 'Unknown',
-      quantity: 1
-    };
-    
-    dispatch(addToCartAsync(cartProduct))
+    dispatch(addToCartAsync({ productId: product._id, quantity: 1 }))
       .unwrap()
-      .then((result) => {
-        console.log('Add to cart success:', result);
-        setActionMessage('Item added to cart successfully!');
-        setTimeout(() => setActionMessage(''), 3000);
+      .then(() => {
+        addNotification('Added to cart', 'success');
       })
       .catch(error => {
-        console.error('Add to cart error:', error);
-        setActionMessage(error || 'Failed to add item to cart');
-        setTimeout(() => setActionMessage(''), 3000);
+        addNotification(error || 'Failed to add to cart', 'error');
       });
   };
 
-  const handleAddToWishlist = () => {
-    console.log('Adding to wishlist:', product);
+  const handleWishlistToggle = () => {
     if (!isLoggedIn) {
-      setActionMessage('Please log in to add items to your wishlist');
+      addNotification('Please log in to add items to wishlist', 'warning');
       setTimeout(() => {
         navigate('/login');
-      }, 2000);
+      }, 1500);
       return;
     }
-    
-    dispatch(addToWishlistAsync(product))
-      .unwrap()
-      .then(() => {
-        setActionMessage('Item added to wishlist successfully!');
-        setTimeout(() => setActionMessage(''), 3000);
-      })
-      .catch(error => {
-        setActionMessage(error || 'Failed to add item to wishlist');
-        setTimeout(() => setActionMessage(''), 3000);
-      });
+
+    if (isInWishlist) {
+      // Remove from wishlist
+      dispatch(removeFromWishlistAsync(product._id))
+        .unwrap()
+        .then(() => {
+          addNotification('Removed from wishlist', 'success');
+        })
+        .catch(error => {
+          addNotification(error || 'Failed to remove from wishlist', 'error');
+        });
+    } else {
+      // Add to wishlist
+      dispatch(addToWishlistAsync({ _id: product._id }))
+        .unwrap()
+        .then(() => {
+          addNotification('Added to wishlist', 'success');
+        })
+        .catch(error => {
+          addNotification(error || 'Failed to add to wishlist', 'error');
+        });
+    }
   };
 
   return (
@@ -145,10 +156,13 @@ const ProductDetails = () => {
               Add to Cart
             </button>
             <button 
-              onClick={handleAddToWishlist}
-              className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+              onClick={handleWishlistToggle}
+              className={`px-6 py-2 border rounded flex items-center ${isInWishlist ? 'border-red-500 text-red-500' : 'border-gray-300 hover:bg-gray-100'}`}
             >
-              Add to Wishlist
+              <svg className="w-5 h-5 mr-2" fill={isInWishlist ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
             </button>
           </div>
           
@@ -162,14 +176,6 @@ const ProductDetails = () => {
           </div>
         </div>
       </div>
-      
-      {actionMessage && (
-        <div className={`fixed top-4 right-4 px-4 py-2 rounded-md ${
-          actionMessage.includes('success') ? 'bg-green-500' : 'bg-red-500'
-        } text-white`}>
-          {actionMessage}
-        </div>
-      )}
     </div>
   );
 };

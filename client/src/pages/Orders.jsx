@@ -192,7 +192,7 @@ const Orders = () => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{product.title}</h3>
                 <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-lg font-bold text-indigo-600">${product.price}</span>
+                  <span className="text-lg font-bold text-indigo-600">₹{product.price}</span>
                   <span className="text-sm text-gray-500">
                     Purchased on {new Date(product.purchaseDate).toLocaleDateString()}
                   </span>

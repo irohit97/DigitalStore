@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../redux/slices/authSlice';
 import axios from 'axios';
+import { useNotification } from '../context/NotificationContext';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,14 @@ const LoginPage = () => {
   const dispatch = useDispatch();
   const { isLoading, error, token } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
+
+  // Show error notification if there's an error
+  useEffect(() => {
+    if (error) {
+      addNotification(error, 'error');
+    }
+  }, [error, addNotification]);
 
   const handleChange = (e) => {
     setFormData({
@@ -46,13 +55,17 @@ const LoginPage = () => {
           user: userToStore
         }));
         
+        addNotification('Login successful', 'success');
         navigate('/');
       } else {
-        throw new Error('Invalid response structure from server');
+        const errorMsg = 'Invalid response from server';
+        dispatch(loginFailure(errorMsg));
+        addNotification(errorMsg, 'error');
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Login failed';
-      dispatch(loginFailure(errorMessage));
+      const errorMsg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      dispatch(loginFailure(errorMsg));
+      addNotification(errorMsg, 'error');
     }
   };
 
@@ -71,11 +84,6 @@ const LoginPage = () => {
             Sign in to your account
           </h2>
         </div>
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-            {error}
-          </div>
-        )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>

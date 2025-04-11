@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { removeFromWishlistAsync, clearWishlistAsync, fetchWishlist } from '../redux/slices/wishlistSlice';
 import { addToCartAsync } from '../redux/slices/cartSlice';
 import { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
 import { BiArrowBack } from 'react-icons/bi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { formatPrice } from '../utils/formatPrice';
+import { useNotification } from '../context/NotificationContext';
 
 const WishlistPage = () => {
   const wishlistItems = useSelector(state => state.wishlist.items);
@@ -17,15 +17,16 @@ const WishlistPage = () => {
   const [isClearing, setIsClearing] = useState(false);
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [isSelectAll, setIsSelectAll] = useState(false);
+  const { addNotification } = useNotification();
 
   // Fetch wishlist on component mount
   useEffect(() => {
     dispatch(fetchWishlist())
       .unwrap()
       .catch((error) => {
-        toast.error(error || 'Failed to load wishlist');
+        addNotification(error || 'Failed to load wishlist', 'error');
       });
-  }, [dispatch]);
+  }, [dispatch, addNotification]);
 
   const handleRemoveFromWishlist = (productId) => {
     if (itemBeingDeleted) return;
@@ -33,12 +34,12 @@ const WishlistPage = () => {
     dispatch(removeFromWishlistAsync(productId))
       .unwrap()
       .then(() => {
-        toast.success('Item removed from wishlist');
+        addNotification('Item removed from wishlist', 'success');
         setItemBeingDeleted(null);
       })
       .catch((error) => {
         console.error('Error removing from wishlist:', error);
-        toast.error(error?.message || 'Failed to remove item from wishlist');
+        addNotification(error?.message || 'Failed to remove item from wishlist', 'error');
         setItemBeingDeleted(null);
       });
   };
@@ -46,16 +47,24 @@ const WishlistPage = () => {
   const handleMoveToCart = (product) => {
     if (itemBeingMoved) return;
     setItemBeingMoved(product._id);
-    dispatch(addToCartAsync({ ...product, quantity: 1 }))
+    dispatch(addToCartAsync({ productId: product._id, quantity: 1 }))
       .unwrap()
       .then(() => {
-        dispatch(removeFromWishlistAsync(product._id));
-        toast.success('Item moved to cart successfully');
-        setItemBeingMoved(null);
+        // Remove from wishlist after successfully adding to cart
+        dispatch(removeFromWishlistAsync(product._id))
+          .unwrap()
+          .then(() => {
+            addNotification('Added to cart and removed from wishlist', 'success');
+            setItemBeingMoved(null); // Reset the state after successful operation
+          })
+          .catch(error => {
+            addNotification(error || 'Failed to remove from wishlist', 'error');
+            setItemBeingMoved(null); // Reset the state even if there's an error
+          });
       })
-      .catch((error) => {
-        toast.error(error || 'Failed to move item to cart');
-        setItemBeingMoved(null);
+      .catch(error => {
+        addNotification(error || 'Failed to add to cart', 'error');
+        setItemBeingMoved(null); // Reset the state if adding to cart fails
       });
   };
 
@@ -66,11 +75,11 @@ const WishlistPage = () => {
     dispatch(clearWishlistAsync())
       .unwrap()
       .then((response) => {
-        toast.success(response?.message || 'Wishlist cleared successfully');
+        addNotification(response?.message || 'Wishlist cleared successfully', 'success');
       })
       .catch((error) => {
         console.error('Error clearing wishlist:', error);
-        toast.error(error?.message || 'Failed to clear wishlist');
+        addNotification(error?.message || 'Failed to clear wishlist', 'error');
       })
       .finally(() => {
         setIsClearing(false);
@@ -103,7 +112,7 @@ const WishlistPage = () => {
   const handleMoveSelectedToCart = () => {
     const selectedProducts = wishlistItems.filter(item => selectedItems.has(item.product._id));
     if (selectedProducts.length === 0) {
-      toast.warning('Please select items to move to cart');
+      addNotification('Please select items to move to cart', 'warning');
       return;
     }
 
@@ -114,12 +123,12 @@ const WishlistPage = () => {
           dispatch(removeFromWishlistAsync(item.product._id));
         })
         .catch(error => {
-          toast.error(`Failed to move ${item.product.title} to cart`);
+          addNotification(`Failed to move ${item.product.title} to cart`, 'error');
         });
     });
     setSelectedItems(new Set());
     setIsSelectAll(false);
-    toast.success('Selected items moved to cart');
+    addNotification('Selected items moved to cart', 'success');
   };
 
   if (loading) {

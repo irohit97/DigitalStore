@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useSelector, useDispatch } from 'react-redux';
 import { loadUserFromStorage, setUser, setLoading } from './redux/slices/authSlice';
 import axios from 'axios';
+import { NotificationProvider } from './context/NotificationContext';
 
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
@@ -129,70 +130,74 @@ function App() {
 
   return (
     <Router>
-      <Navbar />
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/products/:id" element={<ProductDetails />} />
-        <Route path="/ebooks" element={<Ebooks />} />
-        <Route path="/software" element={<Software />} />
-        <Route path="/graphics" element={<Graphics />} />
+      <NotificationProvider>
+        <div className="min-h-screen bg-gray-50">
+          <Navbar />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/products/:id" element={<ProductDetails />} />
+            <Route path="/ebooks" element={<Ebooks />} />
+            <Route path="/software" element={<Software />} />
+            <Route path="/graphics" element={<Graphics />} />
 
-        {/* Protected Routes */}
-        <Route 
-          path="/cart" 
-          element={
-            <ProtectedRoute>
-              <Cart />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/checkout" 
-          element={
-            <ProtectedRoute>
-              <Checkout />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/orders" 
-          element={
-            <ProtectedRoute>
-              <Orders />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/order-history" 
-          element={
-            <ProtectedRoute>
-              <OrderHistory />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/wishlist" 
-          element={
-            <ProtectedRoute>
-              <Wishlist />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/thank-you" 
-          element={
-            <ProtectedRoute>
-              <ThankYou />
-            </ProtectedRoute>
-          } 
-        />
+            {/* Protected Routes */}
+            <Route 
+              path="/cart" 
+              element={
+                <ProtectedRoute>
+                  <Cart />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/checkout" 
+              element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/orders" 
+              element={
+                <ProtectedRoute>
+                  <Orders />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/order-history" 
+              element={
+                <ProtectedRoute>
+                  <OrderHistory />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/wishlist" 
+              element={
+                <ProtectedRoute>
+                  <Wishlist />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/thank-you" 
+              element={
+                <ProtectedRoute>
+                  <ThankYou />
+                </ProtectedRoute>
+              } 
+            />
 
-        {/* 404 Redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+            {/* 404 Redirect */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+      </NotificationProvider>
     </Router>
   );
 }

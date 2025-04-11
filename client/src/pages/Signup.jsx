@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginSuccess } from '../redux/slices/authSlice';
 import axios from 'axios';
+import { useNotification } from '../context/NotificationContext';
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
@@ -11,9 +12,9 @@ const SignupPage = () => {
     password: '',
     confirmPassword: ''
   });
-  const [error, setError] = useState('');
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
 
   const handleChange = (e) => {
     setFormData({
@@ -26,12 +27,12 @@ const SignupPage = () => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      addNotification('Passwords do not match', 'error');
       return;
     }
     
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      addNotification('Password must be at least 6 characters', 'error');
       return;
     }
     
@@ -44,9 +45,10 @@ const SignupPage = () => {
       
       dispatch(loginSuccess(response.data));
       localStorage.setItem('token', response.data.token);
+      addNotification('Registration successful', 'success');
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      addNotification(err.response?.data?.message || 'Registration failed', 'error');
     }
   };
 
@@ -58,11 +60,6 @@ const SignupPage = () => {
             Create your account
           </h2>
         </div>
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-            {error}
-          </div>
-        )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
