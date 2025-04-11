@@ -24,6 +24,10 @@ const orderSchema = new mongoose.Schema(
           type: Number,
           required: true
         },
+        downloadLinkId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'DownloadLink'
+        },
         purchaseDate: {
           type: Date,
           default: Date.now
@@ -42,15 +46,7 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       required: true
-    },
-    downloadLinks: [{
-      product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product'
-      },
-      link: String,
-      expiresAt: Date
-    }]
+    }
   },
   {
     timestamps: true

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchOrdersAsync } from '../redux/slices/orderSlice';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import axiosInstance from '../utils/axios';
 
 const Orders = () => {
   const dispatch = useDispatch();
@@ -20,7 +20,7 @@ const Orders = () => {
 
   useEffect(() => {
     if (orders && orders.length > 0) {
-      // Extract unique purchased products
+      // Extract unique purchased products with their order and item IDs
       const products = new Map();
       orders.forEach(order => {
         if (order.status === 'completed') {
@@ -28,6 +28,8 @@ const Orders = () => {
             if (!products.has(item.product._id)) {
               products.set(item.product._id, {
                 ...item.product,
+                orderId: order._id,
+                itemId: item._id,
                 purchaseDate: order.createdAt
               });
             }
@@ -38,40 +40,39 @@ const Orders = () => {
     }
   }, [orders]);
 
-  const handleDownload = async (productId) => {
-    if (downloading[productId]) return;
+  const handleDownload = async (product) => {
+    if (downloading[product._id]) return;
     
     try {
-      setDownloading(prev => ({ ...prev, [productId]: true }));
+      setDownloading(prev => ({ ...prev, [product._id]: true }));
       
-      // Download the product
-      const downloadResponse = await axios.get(`/api/products/${productId}/download`, {
-        responseType: 'blob'
-      });
+      // Get the download URL using the configured axios instance
+      const response = await axiosInstance.get(`/orders/download/${product.orderId}/${product.itemId}`);
       
-      // Create a temporary link to trigger download
-      const url = window.URL.createObjectURL(new Blob([downloadResponse.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `product-${productId}`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      
-      // Send email
-      await axios.post(`/api/products/${productId}/send-email`);
-      
-      toast.success('Product downloaded and sent to your email!', {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      if (response.data.success && response.data.downloadUrl) {
+        // Create a temporary link to trigger download
+        const link = document.createElement('a');
+        link.href = response.data.downloadUrl;
+        link.target = '_blank';
+        link.download = product.title || 'download';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
+        toast.success('Download started!', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to get download link');
+      }
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download product. Please try again.', {
+      toast.error(error.response?.data?.message || 'Failed to download product. Please try again.', {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
@@ -80,7 +81,7 @@ const Orders = () => {
         draggable: true,
       });
     } finally {
-      setDownloading(prev => ({ ...prev, [productId]: false }));
+      setDownloading(prev => ({ ...prev, [product._id]: false }));
     }
   };
 
@@ -197,20 +198,14 @@ const Orders = () => {
                   </span>
                 </div>
                 <div className="flex space-x-4">
-                  <Link
-                    to={`/products/${product._id}`}
-                    className="flex-1 text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-indigo-100 hover:bg-indigo-200"
-                  >
-                    View Product
-                  </Link>
                   <button
-                    onClick={() => handleDownload(product._id)}
+                    onClick={() => handleDownload(product)}
                     disabled={downloading[product._id]}
-                    className={`flex-1 text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
-                      downloading[product._id]
-                        ? 'bg-gray-400 cursor-not-allowed'
+                    className={`flex-1 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white 
+                      ${downloading[product._id] 
+                        ? 'bg-gray-400 cursor-not-allowed' 
                         : 'bg-indigo-600 hover:bg-indigo-700'
-                    }`}
+                      }`}
                   >
                     {downloading[product._id] ? 'Downloading...' : 'Download'}
                   </button>
