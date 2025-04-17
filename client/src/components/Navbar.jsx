@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../redux/slices/authSlice';
+import { clearCart } from '../redux/slices/cartSlice';
+import { clearWishlist } from '../redux/slices/wishlistSlice';
 import { useState, useRef, useEffect } from 'react';
+import { clearUserData } from '../utils/authUtils';
 
 const Navbar = () => {
   const cartItems = useSelector(state => state.cart.items);
@@ -33,11 +36,15 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    // Clear all user-related data from localStorage
+    clearUserData();
     
+    // Dispatch actions to clear all states
     dispatch(logout());
+    dispatch(clearCart());
+    dispatch(clearWishlist());
     
+    // Close the profile dropdown
     setIsProfileDropdownOpen(false);
   };
 

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginStart, loginSuccess, loginFailure } from '../redux/slices/authSlice';
+import { loginStart, loginSuccess, loginFailure, clearError } from '../redux/slices/authSlice';
 import axios from 'axios';
 import { useNotification } from '../context/NotificationContext';
 
@@ -15,10 +15,20 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { addNotification } = useNotification();
 
+  // Clear error when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
   // Show error notification if there's an error
   useEffect(() => {
     if (error) {
-      addNotification(error, 'error');
+      const timer = setTimeout(() => {
+        addNotification(error, 'error');
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [error, addNotification]);
 
@@ -36,12 +46,9 @@ const LoginPage = () => {
     try {
       const response = await axios.post('/api/auth/login', formData);
       
-      // Ensure response has the expected structure
       if (response.data && response.data.token && response.data.user) {
-        // Save token to localStorage
         localStorage.setItem('token', response.data.token);
         
-        // Save user to localStorage (but exclude sensitive info)
         const userToStore = {
           id: response.data.user.id,
           name: response.data.user.name,
@@ -49,7 +56,6 @@ const LoginPage = () => {
         };
         localStorage.setItem('user', JSON.stringify(userToStore));
         
-        // Update Redux state
         dispatch(loginSuccess({
           token: response.data.token,
           user: userToStore
@@ -58,14 +64,11 @@ const LoginPage = () => {
         addNotification('Login successful', 'success');
         navigate('/');
       } else {
-        const errorMsg = 'Invalid response from server';
-        dispatch(loginFailure(errorMsg));
-        addNotification(errorMsg, 'error');
+        dispatch(loginFailure('Invalid response from server'));
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Login failed. Please check your credentials.';
       dispatch(loginFailure(errorMsg));
-      addNotification(errorMsg, 'error');
     }
   };
 

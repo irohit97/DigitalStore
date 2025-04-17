@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const NotificationContext = createContext();
 
@@ -9,7 +9,7 @@ export const useNotification = () => {
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
 
-  const addNotification = (message, type = 'success') => {
+  const addNotification = useCallback((message, type = 'success') => {
     const newNotification = {
       id: Date.now(),
       message,
@@ -31,13 +31,13 @@ export const NotificationProvider = ({ children }) => {
         prevNotifications.filter(notification => notification.id !== newNotification.id)
       );
     }, 5000);
-  };
+  }, []); // Empty dependency array since this function doesn't depend on any props or state
 
-  const removeNotification = (id) => {
+  const removeNotification = useCallback((id) => {
     setNotifications(prevNotifications => 
       prevNotifications.filter(notification => notification.id !== id)
     );
-  };
+  }, []); // Empty dependency array since this function doesn't depend on any props or state
 
   // Helper function to get icon based on notification type
   const getIcon = (type) => {
@@ -102,17 +102,31 @@ export const NotificationProvider = ({ children }) => {
   return (
     <NotificationContext.Provider value={{ notifications, addNotification, removeNotification }}>
       {children}
+      <style>
+        {`
+          @keyframes slideIn {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+          .notification-slide-in {
+            animation: slideIn 0.3s ease-out forwards;
+          }
+        `}
+      </style>
       <div className="fixed top-24 right-4 z-50 flex flex-col space-y-2 w-80">
         {notifications.map(notification => {
           const styles = getNotificationStyles(notification.type);
           return (
             <div 
               key={notification.id}
-              className="flex items-center w-full p-4 text-gray-500 bg-white rounded-lg shadow-sm dark:text-gray-400 dark:bg-gray-800 transition-all duration-300 ease-in-out transform translate-x-0 opacity-100"
+              className="flex items-center w-full p-4 text-gray-500 bg-white rounded-lg shadow-sm dark:text-gray-400 dark:bg-gray-800 transition-all duration-300 ease-in-out transform translate-x-0 opacity-100 notification-slide-in"
               role="alert"
-              style={{
-                animation: 'slideIn 0.3s ease-out forwards'
-              }}
             >
               <div className={`inline-flex items-center justify-center shrink-0 w-8 h-8 ${styles.iconText} ${styles.iconBg} rounded-lg ${styles.darkIconBg} ${styles.darkIconText}`}>
                 {getIcon(notification.type)}
@@ -138,18 +152,6 @@ export const NotificationProvider = ({ children }) => {
           );
         })}
       </div>
-      <style jsx>{`
-        @keyframes slideIn {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
     </NotificationContext.Provider>
   );
 }; 

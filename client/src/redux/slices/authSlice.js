@@ -1,6 +1,7 @@
 // client/src/redux/slices/authSlice.js
 
 import { createSlice } from '@reduxjs/toolkit';
+import { clearUserData } from '../../utils/authUtils';
 
 const initialState = {
   user: null,
@@ -31,6 +32,9 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.error = null;
+      
+      // Clear all user-related data from localStorage
+      clearUserData();
     },
     clearError: (state) => {
       state.error = null;

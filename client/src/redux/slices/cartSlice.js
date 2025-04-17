@@ -103,6 +103,15 @@ const cartSlice = createSlice({
     clearCart: (state) => {
       state.items = [];
       state.total = 0;
+      state.isLoading = false;
+      state.error = null;
+      state.isDeleting = false;
+      state.deleteSuccess = false;
+      state.deleteError = null;
+      state.addSuccess = false;
+      state.addError = null;
+      state.isUpdatingQuantity = false;
+      state.updateQuantityError = null;
     }
   },
   extraReducers: (builder) => {

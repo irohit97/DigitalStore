@@ -96,6 +96,17 @@ const wishlistSlice = createSlice({
     resetAddStatus: (state) => {
       state.addSuccess = false;
       state.addError = null;
+    },
+    clearWishlist: (state) => {
+      state.items = [];
+      state.totalItems = 0;
+      state.loading = false;
+      state.error = null;
+      state.isDeleting = false;
+      state.deleteSuccess = false;
+      state.deleteError = null;
+      state.addSuccess = false;
+      state.addError = null;
     }
   },
   extraReducers: (builder) => {
@@ -166,5 +177,5 @@ const wishlistSlice = createSlice({
   }
 });
 
-export const { resetDeleteStatus, resetAddStatus } = wishlistSlice.actions;
+export const { resetDeleteStatus, resetAddStatus, clearWishlist } = wishlistSlice.actions;
 export default wishlistSlice.reducer;
