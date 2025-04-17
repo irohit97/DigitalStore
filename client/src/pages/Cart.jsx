@@ -60,8 +60,10 @@ const Cart = () => {
 
   const handleRemoveFromCart = (productId) => {
     if (isDeleting) return;
+    if (!productId) return;
+    
     setItemBeingDeleted(productId);
-    dispatch(deleteFromCartAsync(productId));
+    dispatch(deleteFromCartAsync(productId.toString()));
   };
 
   const handleQuantityChange = (productId, newQuantity) => {
@@ -112,54 +114,54 @@ const Cart = () => {
           </div>
           
           <div className="divide-y">
-            {items.map(item => (
-              <div key={item._id} className="p-4 flex items-center">
+            {items && items.map(item => (
+              <div key={item?._id || item?.product?._id} className="p-4 flex items-center">
                 <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded">
                   <img 
-                    src={item.image} 
-                    alt={item.title} 
+                    src={item?.image} 
+                    alt={item?.title} 
                     className="w-full h-full object-cover"
                   />
                 </div>
                 
                 <div className="ml-4 flex-grow">
-                  <h3 className="font-medium">{item.title}</h3>
-                  <p className="text-sm text-gray-500">{item.category}</p>
+                  <h3 className="font-medium">{item?.title}</h3>
+                  <p className="text-sm text-gray-500">{item?.category}</p>
                   <div className="flex justify-between mt-2">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => handleQuantityChange(item.product._id, item.quantity - 1)}
-                        disabled={isUpdatingQuantity && itemBeingUpdated === item.product._id}
+                        onClick={() => handleQuantityChange(item?.product?._id || item?._id, item?.quantity - 1)}
+                        disabled={isUpdatingQuantity && itemBeingUpdated === (item?.product?._id || item?._id)}
                         className="px-2 py-1 border rounded hover:bg-gray-100"
                       >
                         -
                       </button>
                       <span className="px-2">
-                        {isUpdatingQuantity && itemBeingUpdated === item.product._id ? (
+                        {isUpdatingQuantity && itemBeingUpdated === (item?.product?._id || item?._id) ? (
                           <span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
                         ) : (
-                          item.quantity
+                          item?.quantity
                         )}
                       </span>
                       <button
-                        onClick={() => handleQuantityChange(item.product._id, item.quantity + 1)}
-                        disabled={isUpdatingQuantity && itemBeingUpdated === item.product._id}
+                        onClick={() => handleQuantityChange(item?.product?._id || item?._id, item?.quantity + 1)}
+                        disabled={isUpdatingQuantity && itemBeingUpdated === (item?.product?._id || item?._id)}
                         className="px-2 py-1 border rounded hover:bg-gray-100"
                       >
                         +
                       </button>
                     </div>
-                    <p className="font-semibold">{formatPrice(item.price * item.quantity)}</p>
+                    <p className="font-semibold">{formatPrice((item?.price || 0) * (item?.quantity || 0))}</p>
                   </div>
                 </div>
                 
                 <button 
-                  onClick={() => handleRemoveFromCart(item.product._id)}
-                  disabled={isDeleting && itemBeingDeleted === item.product._id}
+                  onClick={() => handleRemoveFromCart(item?.product?._id || item?._id)}
+                  disabled={isDeleting && itemBeingDeleted === (item?.product?._id || item?._id)}
                   className="ml-4 text-red-500 hover:text-red-700 transition-colors p-2"
                   aria-label="Remove item"
                 >
-                  {isDeleting && itemBeingDeleted === item.product._id ? (
+                  {isDeleting && itemBeingDeleted === (item?.product?._id || item?._id) ? (
                     <span className="inline-block w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></span>
                   ) : (
                     <AiOutlineDelete size={20} />

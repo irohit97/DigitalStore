@@ -147,7 +147,10 @@ const cartSlice = createSlice({
       })
       .addCase(deleteFromCartAsync.fulfilled, (state, action) => {
         state.isDeleting = false;
-        state.items = state.items.filter(item => item.product._id !== action.payload);
+        state.items = state.items.filter(item => {
+          const itemId = item.product?._id || item._id;
+          return itemId?.toString() !== action.payload?.toString();
+        });
         state.total = state.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         state.deleteSuccess = true;
       })
