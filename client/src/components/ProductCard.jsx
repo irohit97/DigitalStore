@@ -3,15 +3,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToWishlistAsync, removeFromWishlistAsync, fetchWishlist } from '../redux/slices/wishlistSlice';
 import { addToCartAsync } from '../redux/slices/cartSlice';
 import { useState, useEffect } from 'react';
+import { useNotification } from '../context/NotificationContext';
+import { formatPrice } from '../utils/formatPrice';
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [message, setMessage] = useState('');
   const { token } = useSelector(state => state.auth);
   const isLoggedIn = !!token;
   const { items: wishlistItems } = useSelector(state => state.wishlist);
   const [isInWishlist, setIsInWishlist] = useState(false);
+  const { addNotification } = useNotification();
 
   useEffect(() => {
     // Check if product is in wishlist
@@ -35,7 +37,7 @@ const ProductCard = ({ product }) => {
     e.stopPropagation(); // Stop event bubbling
     
     if (!isLoggedIn) {
-      setMessage('Please log in to add items to wishlist');
+      addNotification('Please log in to add items to wishlist', 'warning');
       setTimeout(() => {
         navigate('/login');
       }, 1500);
@@ -47,24 +49,20 @@ const ProductCard = ({ product }) => {
       dispatch(removeFromWishlistAsync(product._id))
         .unwrap()
         .then(() => {
-          setMessage('Removed from wishlist');
-          setTimeout(() => setMessage(''), 1500);
+          addNotification('Removed from wishlist', 'success');
         })
         .catch(error => {
-          setMessage(error || 'Failed to remove from wishlist');
-          setTimeout(() => setMessage(''), 1500);
+          addNotification(error || 'Failed to remove from wishlist', 'error');
         });
     } else {
       // Add to wishlist
       dispatch(addToWishlistAsync({ _id: product._id }))
         .unwrap()
         .then(() => {
-          setMessage('Added to wishlist');
-          setTimeout(() => setMessage(''), 1500);
+          addNotification('Added to wishlist', 'success');
         })
         .catch(error => {
-          setMessage(error || 'Failed to add to wishlist');
-          setTimeout(() => setMessage(''), 1500);
+          addNotification(error || 'Failed to add to wishlist', 'error');
         });
     }
   };
@@ -74,7 +72,7 @@ const ProductCard = ({ product }) => {
     e.stopPropagation(); // Stop event bubbling
     
     if (!isLoggedIn) {
-      setMessage('Please log in to add items to cart');
+      addNotification('Please log in to add items to cart', 'warning');
       setTimeout(() => {
         navigate('/login');
       }, 1500);
@@ -94,24 +92,15 @@ const ProductCard = ({ product }) => {
     dispatch(addToCartAsync(cartProduct))
       .unwrap()
       .then(() => {
-        setMessage('Added to cart!');
-        setTimeout(() => setMessage(''), 1500);
+        addNotification('Added to cart', 'success');
       })
       .catch(error => {
-        setMessage(error || 'Failed to add to cart');
-        setTimeout(() => setMessage(''), 1500);
+        addNotification(error || 'Failed to add to cart', 'error');
       });
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative">
-      {message && (
-        <div className={`absolute top-2 right-2 px-2 py-1 text-sm rounded z-10 ${
-          message.includes('Failed') ? 'bg-red-500' : 'bg-green-500'
-        } text-white`}>
-          {message}
-        </div>
-      )}
       <Link to={`/products/${product._id}`} className="block">
         <img 
           src={product.image} 
@@ -120,7 +109,7 @@ const ProductCard = ({ product }) => {
         />
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-1 hover:text-blue-600">{product.title}</h3>
-          <p className="text-gray-800 font-bold mb-2">₹{product.price}</p>
+          <p className="text-gray-800 font-bold mb-2">{formatPrice(product.price)}</p>
         </div>
       </Link>
       <div className="p-4 pt-0 flex justify-between items-center">

@@ -43,10 +43,10 @@ export const deleteFromCartAsync = createAsyncThunk(
   'cart/deleteFromCart',
   async (productId, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_URL}/cart/${productId}`, {
+      const response = await axios.delete(`/api/cart/${productId}`, {
         headers: { Authorization: getAuthToken() }
       });
-      return productId;
+      return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to remove item from cart');
     }
@@ -147,15 +147,14 @@ const cartSlice = createSlice({
       })
       .addCase(deleteFromCartAsync.fulfilled, (state, action) => {
         state.isDeleting = false;
-        state.items = state.items.filter(item => {
-          const itemId = item.product?._id || item._id;
-          return itemId?.toString() !== action.payload?.toString();
-        });
-        state.total = state.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         state.deleteSuccess = true;
+        state.deleteError = null;
+        state.items = action.payload.items;
+        state.total = action.payload.total;
       })
       .addCase(deleteFromCartAsync.rejected, (state, action) => {
         state.isDeleting = false;
+        state.deleteSuccess = false;
         state.deleteError = action.payload;
       })
       

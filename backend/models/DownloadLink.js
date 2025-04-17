@@ -14,7 +14,7 @@ const downloadLinkSchema = new mongoose.Schema({
     type: Date,
     default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
   },
-  _v: {
+  __v: {
     type: Number,
     default: 0
   }

@@ -86,11 +86,7 @@ cartSchema.methods.addItem = async function(product, quantity = 1) {
 
 // Add a method to remove items from cart
 cartSchema.methods.removeItem = async function(productId) {
-  this.items = this.items.filter(item => {
-    const itemProductId = item.product.toString();
-    const targetProductId = productId.toString();
-    return itemProductId !== targetProductId;
-  });
+  this.items = this.items.filter(item => item.product.toString() !== productId.toString());
   return this.save();
 };
 

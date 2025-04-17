@@ -19,6 +19,8 @@ import Ebooks from './pages/Ebooks';
 import Software from './pages/Software';
 import Graphics from './pages/Graphics';
 import ThankYou from './pages/ThankYou';
+import About from './pages/About';
+import Contact from './pages/Contact';
 import LoadingSpinner from './components/LoadingSpinner';
 import { getCartAsync } from './redux/slices/cartSlice';
 import { fetchWishlist } from './redux/slices/wishlistSlice';
@@ -142,6 +144,8 @@ function App() {
             <Route path="/ebooks" element={<Ebooks />} />
             <Route path="/software" element={<Software />} />
             <Route path="/graphics" element={<Graphics />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
 
             {/* Protected Routes */}
             <Route 

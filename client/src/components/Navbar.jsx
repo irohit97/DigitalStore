@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../redux/slices/authSlice';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const Navbar = () => {
   const cartItems = useSelector(state => state.cart.items);
@@ -11,9 +11,26 @@ const Navbar = () => {
 
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const productTimeoutRef = useRef(null);
   const profileTimeoutRef = useRef(null);
+
+  // Handle scroll event to add shadow to navbar when scrolled
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -37,7 +54,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-md py-4 px-6 flex justify-between items-center">
+    <nav className={`bg-white shadow-md py-4 px-6 flex justify-between items-center sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'shadow-lg' : 'shadow-md'}`}>
       <div className="flex items-center space-x-4">
         <Link to="/" className="text-2xl font-bold text-blue-600">DigitalStore</Link>
         <div className="hidden md:flex space-x-6">

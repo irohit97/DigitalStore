@@ -5,6 +5,7 @@ import { addToCartAsync } from '../redux/slices/cartSlice';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNotification } from '../context/NotificationContext';
+import { formatPrice } from '../utils/formatPrice';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -145,7 +146,12 @@ const ProductDetails = () => {
         </div>
         <div className="md:w-1/2">
           <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
-          <p className="text-2xl font-semibold text-gray-800 mb-4">₹{product.price}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-3xl font-bold text-purple-600">{formatPrice(product.price)}</span>
+            {product.originalPrice && (
+              <span className="text-lg text-gray-500 line-through">{formatPrice(product.originalPrice)}</span>
+            )}
+          </div>
           <p className="text-gray-600 mb-6">{product.description || 'No description available'}</p>
           
           <div className="flex space-x-4 mb-6">

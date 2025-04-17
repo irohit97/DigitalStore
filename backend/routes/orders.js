@@ -10,30 +10,50 @@ const DownloadLink = require('../models/DownloadLink');
 // @access  Private
 router.post('/', protect, async (req, res) => {
   try {
-    const { items, totalAmount } = req.body;
+    console.log('Received order request:', req.body);
+    
+    const { items, totalAmount, paymentMethod } = req.body;
     
     if (!items || !items.length) {
       return res.status(400).json({ message: 'No items in the order' });
     }
     
+    // Validate each item
+    for (const item of items) {
+      if (!item.product || !item.product._id) {
+        return res.status(400).json({ message: 'Invalid product data in order items' });
+      }
+      if (!item.quantity || item.quantity < 1) {
+        return res.status(400).json({ message: 'Invalid quantity in order items' });
+      }
+    }
+    
     // Find download links for each product
     const orderItems = await Promise.all(items.map(async (item) => {
-      // Find existing download link or create new one
-      let downloadLink = await DownloadLink.findOne({ product: item.product._id });
-      
-      if (!downloadLink) {
-        downloadLink = await DownloadLink.create({
+      try {
+        // Find existing download link or create new one
+        let downloadLink = await DownloadLink.findOne({ product: item.product._id });
+        
+        if (!downloadLink) {
+          // Generate a default download URL if none is provided
+          const defaultDownloadUrl = `https://example.com/downloads/${item.product._id}`;
+          
+          downloadLink = await DownloadLink.create({
+            product: item.product._id,
+            link: item.product.downloadUrl || defaultDownloadUrl
+          });
+        }
+        
+        return {
           product: item.product._id,
-          link: item.product.downloadUrl
-        });
+          quantity: item.quantity,
+          price: item.product.price,
+          downloadLinkId: downloadLink._id
+        };
+      } catch (err) {
+        console.error('Error processing item:', err);
+        throw new Error(`Error processing item: ${err.message}`);
       }
-      
-      return {
-        product: item.product._id,
-        quantity: item.quantity,
-        price: item.product.price,
-        downloadLinkId: downloadLink._id
-      };
     }));
     
     // Create a new order
@@ -42,7 +62,7 @@ router.post('/', protect, async (req, res) => {
       items: orderItems,
       totalAmount,
       status: 'completed',  // For digital products, set as completed immediately
-      paymentMethod: 'Razorpay'
+      paymentMethod: paymentMethod || 'Razorpay'  // Use the provided payment method or default to Razorpay
     });
 
     // Save the order

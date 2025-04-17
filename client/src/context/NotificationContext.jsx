@@ -108,8 +108,11 @@ export const NotificationProvider = ({ children }) => {
           return (
             <div 
               key={notification.id}
-              className="flex items-center w-full p-4 text-gray-500 bg-white rounded-lg shadow-sm dark:text-gray-400 dark:bg-gray-800 animate-fade-in-out"
+              className="flex items-center w-full p-4 text-gray-500 bg-white rounded-lg shadow-sm dark:text-gray-400 dark:bg-gray-800 transition-all duration-300 ease-in-out transform translate-x-0 opacity-100"
               role="alert"
+              style={{
+                animation: 'slideIn 0.3s ease-out forwards'
+              }}
             >
               <div className={`inline-flex items-center justify-center shrink-0 w-8 h-8 ${styles.iconText} ${styles.iconBg} rounded-lg ${styles.darkIconBg} ${styles.darkIconText}`}>
                 {getIcon(notification.type)}
@@ -135,6 +138,18 @@ export const NotificationProvider = ({ children }) => {
           );
         })}
       </div>
+      <style jsx>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </NotificationContext.Provider>
   );
 }; 

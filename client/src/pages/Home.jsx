@@ -10,7 +10,6 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items: cartItems } = useSelector(state => state.cart);
@@ -44,8 +43,21 @@ const Home = () => {
   }, []);
 
   const handleAddToCart = (product) => {
-    dispatch(addToCartAsync({ productId: product._id, quantity: 1 }));
-    addNotification('Added to cart', 'success');
+    if (!isLoggedIn) {
+      addNotification('Please log in to add items to cart', 'warning');
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+      return;
+    }
+    dispatch(addToCartAsync({ productId: product._id, quantity: 1 }))
+      .unwrap()
+      .then(() => {
+        addNotification('Added to cart', 'success');
+      })
+      .catch(error => {
+        addNotification(error || 'Failed to add to cart', 'error');
+      });
   };
 
   const handleWishlistToggle = (product) => {
@@ -57,21 +69,18 @@ const Home = () => {
       return;
     }
 
-    // Check if product is already in wishlist
     const isInWishlist = wishlistItems.some(item => item.product._id === product._id);
     
     if (isInWishlist) {
-      // Remove from wishlist
       dispatch(removeFromWishlistAsync(product._id))
         .unwrap()
         .then(() => {
-          addNotification('Removed from wishlist', 'error');
+          addNotification('Removed from wishlist', 'success');
         })
         .catch(error => {
           addNotification(error || 'Failed to remove from wishlist', 'error');
         });
     } else {
-      // Add to wishlist
       dispatch(addToWishlistAsync({ _id: product._id }))
         .unwrap()
         .then(() => {
@@ -83,65 +92,88 @@ const Home = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-8">Loading products...</div>;
-  if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <strong className="font-bold">Error! </strong>
+        <span className="block sm:inline">{error}</span>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {message && (
-        <div className={`fixed top-16 right-4 px-4 py-2 rounded-md ${
-          message.includes('Failed') ? 'bg-red-500' : 'bg-green-500'
-        } text-white z-40`}>
-          {message}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
+            <span className="block">Premium Digital Products</span>
+            <span className="block text-blue-600 mt-2">Curated Just For You</span>
+          </h1>
+          <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+            Discover our collection of high-quality digital products designed to enhance your digital experience.
+          </p>
         </div>
-      )}
-      
-      <h1 className="text-3xl font-bold mb-8">Featured Digital Products</h1>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {products.map(product => {
-          // Check if product is in wishlist
-          const isInWishlist = wishlistItems.some(item => item.product._id === product._id);
-          
-          return (
-            <div key={product._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-              <Link to={`/products/${product._id}`}>
-                <div className="p-4">
-                  <img 
-                    src={product.image} 
-                    alt={product.title} 
-                    className="w-full h-48 object-contain mb-4"
-                  />
-                  <h2 className="text-xl font-semibold mb-2">{product.title}</h2>
-                  <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
-                </div>
-              </Link>
-              
-              <div className="px-4 pb-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold">₹{product.price.toFixed(2)}</span>
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => handleWishlistToggle(product)}
-                      className={`p-2 ${isInWishlist ? 'text-red-500' : 'text-gray-500 hover:text-red-500'} transition-colors`}
-                      aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-                    >
-                      <svg className="w-5 h-5" fill={isInWishlist ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    </button>
-                    <button 
-                      onClick={() => handleAddToCart(product)}
-                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 hover:scale-105 transition-all transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-                    >
-                      Add to Cart
-                    </button>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {products.map(product => {
+            const isInWishlist = wishlistItems.some(item => item.product._id === product._id);
+            
+            return (
+              <div key={product._id} className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1">
+                <Link to={`/products/${product._id}`} className="block">
+                  <div className="relative">
+                    <div className="aspect-w-16 aspect-h-9 bg-gray-100">
+                      <img 
+                        src={product.image} 
+                        alt={product.title} 
+                        className="w-full h-64 object-cover transform group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="absolute top-4 right-4">
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleWishlistToggle(product);
+                        }}
+                        className={`p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-md ${
+                          isInWishlist ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
+                        } transition-colors duration-200`}
+                        aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+                      >
+                        <svg className="w-6 h-6" fill={isInWishlist ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                  
+                  <div className="p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-1">{product.title}</h2>
+                    <p className="text-gray-600 mb-4 line-clamp-2 text-sm">{product.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold text-blue-600">₹{product.price.toFixed(2)}</span>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleAddToCart(product);
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
+                </Link>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

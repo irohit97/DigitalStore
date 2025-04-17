@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatPrice } from '../utils/formatPrice';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import axiosInstance from '../utils/axios';
 import { clearCart } from '../redux/slices/cartSlice';
 
 const CheckoutPage = () => {
@@ -45,17 +45,47 @@ const CheckoutPage = () => {
     setIsProcessing(true);
     
     try {
-      // Send order to backend
-      const response = await axios.post('/api/orders', {
-        items: cartItems,
+      // Log the cart items for debugging
+      console.log('Cart items before formatting:', cartItems);
+      
+      // Format cart items to match what the backend expects
+      const formattedItems = cartItems.map(item => {
+        // Make sure we have the product object with _id and price
+        if (!item.product || !item.product._id) {
+          console.error('Invalid product data:', item);
+          throw new Error('Invalid product data in cart');
+        }
+        
+        // Ensure downloadUrl is a string, even if empty
+        const downloadUrl = item.product.downloadUrl || `https://example.com/downloads/${item.product._id}`;
+        
+        return {
+          product: {
+            _id: item.product._id,
+            price: item.product.price,
+            downloadUrl: downloadUrl
+          },
+          quantity: item.quantity
+        };
+      });
+      
+      // Log the formatted items for debugging
+      console.log('Formatted items to send:', formattedItems);
+      console.log('Total amount:', subtotal);
+      console.log('Payment method:', paymentMethod);
+      
+      // Check if user is authenticated
+      const token = localStorage.getItem('token');
+      console.log('Auth token exists:', !!token);
+      
+      // Send order to backend using the configured axiosInstance
+      const response = await axiosInstance.post('/orders', {
+        items: formattedItems,
         totalAmount: subtotal,
         paymentMethod
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
       });
+      
+      console.log('Server response:', response.data);
       
       if (response.data.success) {
         // Clear the cart after successful order
@@ -70,6 +100,8 @@ const CheckoutPage = () => {
       }
     } catch (error) {
       console.error('Order error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
       toast.error(error.response?.data?.message || error.message || 'Failed to place order');
     } finally {
       setIsProcessing(false);
